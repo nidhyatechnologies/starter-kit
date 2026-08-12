@@ -200,8 +200,8 @@ Google and Facebook buttons are displayed on relevant authentication screens as 
 | --- | --- |
 | `npm run dev` | Start the Vite development server |
 | `npm run build` | Build production front-end assets |
-| `php artisan test --compact` | Run the Pest test suite |
-| `vendor/bin/pint --format agent` | Format changed PHP files |
+| `php artisan test` | Run the Pest test suite |
+| `vendor/bin/pint --parallel` | Format changed PHP files |
 | `php artisan migrate --seed` | Run migrations and create the local administrator role |
 | `php artisan permission:cache-reset` | Clear Spatie permission cache |
 | `php artisan route:list` | Inspect registered routes |
