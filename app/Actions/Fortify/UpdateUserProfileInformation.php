@@ -32,7 +32,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             ],
         ])->validateWithBag('updateProfileInformation');
 
-        if ($input['email'] !== $user->getAttribute('email') && $this->requiresEmailVerification($user)) {
+        if ($input['email'] !== $user->getAttribute('email') && $user instanceof MustVerifyEmail) {
             $this->updateVerifiedUser($user, $input);
         } else {
             $user->forceFill([
@@ -56,10 +56,5 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         ])->save();
 
         $user->sendEmailVerificationNotification();
-    }
-
-    protected function requiresEmailVerification(AuthenticatableUser $user): bool
-    {
-        return $user instanceof MustVerifyEmail;
     }
 }
