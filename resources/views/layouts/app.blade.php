@@ -66,14 +66,17 @@
 
     <nav class="app-primary-nav" aria-label="Main navigation">
         <div class="app-primary-nav__inner">
-            <a wire:navigate href="{{ route('dashboard') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('dashboard')])>Workspace</a>
+            <a wire:navigate href="{{ route('dashboard') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('dashboard')])>Dashboard</a>
             <a wire:navigate href="{{ route('profile.edit') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('profile.*')])>Account</a>
+            @can('manage access')
+                <a wire:navigate href="{{ route('users.index') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('users.*') || request()->routeIs('access-control.*')])>User management</a>
+            @endcan
         </div>
     </nav>
 
-    <div class="app-workspace">
-        <aside class="app-sidebar" aria-label="Section navigation">
-            @if (request()->routeIs('profile.*'))
+    <div @class(['app-workspace', 'app-workspace--dashboard' => request()->routeIs('dashboard')])>
+        @if (request()->routeIs('profile.*'))
+            <aside class="app-sidebar" aria-label="Account navigation">
                 <p class="app-sidebar__title">Account</p>
                 <nav class="app-sidebar__nav">
                     <a wire:navigate href="{{ route('profile.edit') }}" @class(['app-sidebar__link', 'is-active' => request()->routeIs('profile.edit')])>
@@ -89,16 +92,22 @@
                         <span>Security</span>
                     </a>
                 </nav>
-            @else
-                <p class="app-sidebar__title">Workspace</p>
+            </aside>
+        @elseif (request()->routeIs('users.*') || request()->routeIs('access-control.*'))
+            <aside class="app-sidebar" aria-label="User management navigation">
+                <p class="app-sidebar__title">User management</p>
                 <nav class="app-sidebar__nav">
-                    <a wire:navigate href="{{ route('dashboard') }}" class="app-sidebar__link is-active">
-                        <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
-                        <span>Overview</span>
+                    <a wire:navigate href="{{ route('users.index') }}" @class(['app-sidebar__link', 'is-active' => request()->routeIs('users.*')])>
+                        <i class="ti ti-users" aria-hidden="true"></i>
+                        <span>Users</span>
+                    </a>
+                    <a wire:navigate href="{{ route('access-control.index') }}" @class(['app-sidebar__link', 'is-active' => request()->routeIs('access-control.*')])>
+                        <i class="ti ti-lock-access" aria-hidden="true"></i>
+                        <span>Roles & permissions</span>
                     </a>
                 </nav>
-            @endif
-        </aside>
+            </aside>
+        @endif
 
         <main class="app-content">
             <div class="container-fluid">{{ $slot }}</div>

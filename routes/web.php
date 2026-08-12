@@ -20,6 +20,14 @@ Route::livewire('/profile/security', 'pages::security')
     ->middleware(['auth', 'verified'])
     ->name('profile.security');
 
+Route::livewire('/access-control', 'pages::access-control')
+    ->middleware(['auth', 'verified', 'can:manage access'])
+    ->name('access-control.index');
+
+Route::livewire('/users', 'pages::users')
+    ->middleware(['auth', 'verified', 'can:manage access'])
+    ->name('users.index');
+
 Route::livewire('/login', 'auth::login')->name('login');
 Route::livewire('/register', 'auth::register')->name('register');
 Route::livewire('/forgot-password', 'auth::forgot-password')->name('password.request');

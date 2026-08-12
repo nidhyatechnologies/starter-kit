@@ -56,7 +56,7 @@ test('verified users can view the Livewire dashboard', function () {
     $this->actingAs(User::factory()->create())
         ->get(route('dashboard'))
         ->assertSuccessful()
-        ->assertSee('Workspace')
+        ->assertSee('Dashboard')
         ->assertSee('Notifications')
         ->assertSee('Overview')
         ->assertSee('Your NatyaTech workspace is ready');
