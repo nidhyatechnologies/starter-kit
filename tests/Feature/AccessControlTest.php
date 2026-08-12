@@ -25,14 +25,14 @@ test('an access manager can create roles, permissions, and assignments', functio
 
     $this->actingAs($manager);
 
-    Livewire::test('pages::access-control')
+    Livewire::test('pages::roles.index')
         ->set('permissionName', 'view reports')
         ->call('savePermission')
         ->assertHasNoErrors();
 
     $permission = Permission::findByName('view reports');
 
-    Livewire::test('pages::access-control')
+    Livewire::test('pages::roles.index')
         ->set('roleName', 'Report Viewer')
         ->set('rolePermissionIds', [$permission->id])
         ->call('saveRole')
@@ -48,7 +48,7 @@ test('an access manager can create roles, permissions, and assignments', functio
         ->assertSuccessful()
         ->assertSee('All users');
 
-    Livewire::test('pages::users')
+    Livewire::test('pages::users.index')
         ->call('editUser', $member->id)
         ->set('roleIds', [$role->id])
         ->call('saveRoles')

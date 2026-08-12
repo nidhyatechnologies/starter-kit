@@ -67,7 +67,7 @@ test('users can update their profile from the admin area', function () {
 
     $this->actingAs($user);
 
-    Livewire::test('pages::profile')
+    Livewire::test('pages::profile.index')
         ->set('name', 'Updated Name')
         ->set('email', $user->email)
         ->call('updateProfile')
@@ -91,7 +91,7 @@ test('users can manage their password and security settings', function () {
         ->assertSee('Two-factor authentication')
         ->assertSee('Close account');
 
-    Livewire::test('pages::password')
+    Livewire::test('pages::profile.password')
         ->set('currentPassword', 'current-password')
         ->set('password', 'new-secure-password')
         ->set('passwordConfirmation', 'new-secure-password')

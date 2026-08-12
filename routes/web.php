@@ -8,23 +8,23 @@ Route::livewire('/dashboard', 'pages::dashboard')
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::livewire('/profile', 'pages::profile')
+Route::livewire('/profile', 'pages::profile.index')
     ->middleware(['auth', 'verified'])
     ->name('profile.edit');
 
-Route::livewire('/profile/password', 'pages::password')
+Route::livewire('/profile/password', 'pages::profile.password')
     ->middleware(['auth', 'verified'])
     ->name('profile.password');
 
-Route::livewire('/profile/security', 'pages::security')
+Route::livewire('/profile/security', 'pages::profile.security')
     ->middleware(['auth', 'verified'])
     ->name('profile.security');
 
-Route::livewire('/access-control', 'pages::access-control')
+Route::livewire('/access-control', 'pages::roles.index')
     ->middleware(['auth', 'verified', 'can:manage access'])
     ->name('access-control.index');
 
-Route::livewire('/users', 'pages::users')
+Route::livewire('/users', 'pages::users.index')
     ->middleware(['auth', 'verified', 'can:manage access'])
     ->name('users.index');
 
