@@ -39,6 +39,28 @@ A professional Laravel starter application with a custom Bootstrap-based interfa
 
 Laravel Herd is supported for local development. The project can also run with the standard Laravel development server.
 
+## Create a new project with the Laravel Installer
+
+After this repository is published as the Composer package `nidhyatechnologies/starter-kit`, create a new application directly with the Laravel Installer:
+
+```bash
+laravel new my-application --using=nidhyatechnologies/starter-kit
+```
+
+Then enter the new project, configure the database, and run the migrations and seeders:
+
+```bash
+cd my-application
+php artisan migrate --seed
+npm run dev
+```
+
+The `--using` option resolves a Composer package name. Publish this repository to Packagist, or register it in your private Composer repository, before using the command. Install or update the Laravel Installer first if `laravel` is not available on your machine:
+
+```bash
+composer global require laravel/installer
+```
+
 ## Installation
 
 1. Install PHP dependencies.
