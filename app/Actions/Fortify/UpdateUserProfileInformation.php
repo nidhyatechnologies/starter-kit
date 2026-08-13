@@ -4,6 +4,8 @@ namespace App\Actions\Fortify;
 
 use App\Actions\RecordAuditEvent;
 use App\Models\User;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Foundation\Auth\User as AuthenticatableUser;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +20,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
      *
      * @throws ValidationException
      */
-    public function update(User $user, array $input): void
+    public function update(AuthenticatableUser $user, array $input): void
     {
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
@@ -28,11 +30,11 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
                 'string',
                 'email',
                 'max:255',
-                Rule::unique('users')->ignore($user->id),
+                Rule::unique('users')->ignore($user->getKey()),
             ],
         ])->validateWithBag('updateProfileInformation');
 
-        if ($input['email'] !== $user->email) {
+        if ($input['email'] !== $user->getAttribute('email') && $user instanceof MustVerifyEmail) {
             $this->updateVerifiedUser($user, $input);
         } else {
             $user->forceFill([
@@ -49,7 +51,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
      *
      * @param  array<string, string>  $input
      */
-    protected function updateVerifiedUser(User $user, array $input): void
+    protected function updateVerifiedUser(AuthenticatableUser&MustVerifyEmail $user, array $input): void
     {
         $user->forceFill([
             'name' => $input['name'],

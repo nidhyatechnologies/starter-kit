@@ -94,8 +94,11 @@ new #[Layout('layouts.app'), Title('Security')] class extends Component {
         app(RecordAuditEvent::class)->handle('account.closed', $user);
         Auth::logout();
         $user->delete();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
+
+        if (request()->hasSession()) {
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+        }
 
         $this->redirectRoute('home', navigate: true);
     }
@@ -146,6 +149,12 @@ new #[Layout('layouts.app'), Title('Security')] class extends Component {
 
     private function refreshSessions(): void
     {
+        if (! request()->hasSession()) {
+            $this->sessions = [];
+
+            return;
+        }
+
         $currentSessionId = request()->session()->getId();
 
         $this->sessions = DB::table('sessions')

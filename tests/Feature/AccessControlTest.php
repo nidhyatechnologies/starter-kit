@@ -4,20 +4,31 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Notifications\AccountSetupInvitation;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\DemoUserSeeder;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
-test('the default administrator is verified and has every management permission', function () {
+test('the base seeder creates authorization roles without demo credentials', function () {
     $this->seed(DatabaseSeeder::class);
+
+    expect(User::query()->where('email', 'admin@example.com')->exists())->toBeFalse();
+
+    $superAdmin = Role::findByName('Super Admin');
+
+    expect($superAdmin->hasPermissionTo('users.delete'))->toBeTrue()
+        ->and($superAdmin->hasPermissionTo('roles.manage'))->toBeTrue();
+});
+
+test('the demo user is only created by its explicit development seeder', function () {
+    $this->seed(DemoUserSeeder::class);
 
     $administrator = User::query()->where('email', 'admin@example.com')->firstOrFail();
 
     expect($administrator->hasVerifiedEmail())->toBeTrue()
         ->and($administrator->hasRole('Super Admin'))->toBeTrue()
-        ->and($administrator->can('users.delete'))->toBeTrue()
-        ->and($administrator->can('roles.manage'))->toBeTrue();
+        ->and($administrator->can('users.delete'))->toBeTrue();
 });
 
 test('users without the access permission cannot visit role management', function () {
@@ -122,7 +133,14 @@ test('a user manager can create, update, and delete users', function () {
     $member = User::query()->where('email', 'member@example.com')->firstOrFail();
 
     expect($member->must_reset_password)->toBeTrue();
-    Notification::assertSentTo($member, AccountSetupInvitation::class);
+    Notification::assertSentTo($member, AccountSetupInvitation::class, function (AccountSetupInvitation $notification) use ($member): bool {
+        $message = $notification->toMail($member);
+
+        return $message->subject === 'Set up your '.config('app.name').' account'
+            && $message->actionText === 'Set up your account'
+            && str($message->actionUrl)->contains('setup=1')
+            && str($message->actionUrl)->contains('/reset-password/');
+    });
 
     Livewire::test('pages::users.index')
         ->call('editUser', $member->id)

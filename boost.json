@@ -12,7 +12,6 @@
         "fortify-development",
         "laravel-best-practices",
         "livewire-development",
-        "pest-testing",
-        "tailwindcss-development"
+        "pest-testing"
     ]
 }

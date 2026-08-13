@@ -34,5 +34,14 @@ jobs:
       - name: Setup Application
         run: composer setup
 
+      - name: Install browser test runtime
+        run: npx playwright install --with-deps chromium
+
       - name: Run CI Checks
         run: composer ci:check
+
+      - name: Audit PHP dependencies
+        run: composer audit --no-interaction
+
+      - name: Audit production JavaScript dependencies
+        run: npm audit --omit=dev --audit-level=high
