@@ -3,9 +3,16 @@
     "name": "nidhyatechnologies/starter-kit",
     "type": "project",
     "description": "Nidhya Starter Kit for Laravel and Livewire.",
+    "homepage": "https://github.com/nidhyatechnologies/starter-kit",
+    "support": {
+        "issues": "https://github.com/nidhyatechnologies/starter-kit/issues",
+        "source": "https://github.com/nidhyatechnologies/starter-kit"
+    },
     "keywords": [
         "laravel",
-        "framework"
+        "framework",
+        "livewire",
+        "starter-kit"
     ],
     "license": "MIT",
     "require": {
@@ -49,6 +56,7 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
             "@php artisan migrate --force",
+            "@php artisan db:seed --force",
             "npm install",
             "npm run build"
         ],
@@ -67,7 +75,7 @@
             "@test"
         ],
         "types:check": [
-            "phpstan analyse"
+            "phpstan analyse --memory-limit=512M"
         ],
         "test": [
             "@php artisan config:clear --ansi",

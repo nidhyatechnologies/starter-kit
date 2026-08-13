@@ -2,6 +2,7 @@
 
 namespace App\Actions\Fortify;
 
+use App\Actions\RecordAuditEvent;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -27,6 +28,9 @@ class ResetUserPassword implements ResetsUserPasswords
 
         $user->forceFill([
             'password' => Hash::make($input['password']),
+            'must_reset_password' => false,
         ])->save();
+
+        app(RecordAuditEvent::class)->handle('password.reset', $user);
     }
 }

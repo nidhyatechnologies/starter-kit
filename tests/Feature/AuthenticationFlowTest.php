@@ -59,7 +59,34 @@ test('verified users can view the Livewire dashboard', function () {
         ->assertSee('Dashboard')
         ->assertSee('Notifications')
         ->assertSee('Overview')
-        ->assertSee('Your NatyaTech workspace is ready');
+        ->assertSee('Your Nidhya Starter Kit workspace is ready');
+});
+
+test('suspended users cannot sign in and users required to reset their password are redirected', function () {
+    $suspendedUser = User::factory()->create([
+        'email' => 'suspended@example.com',
+        'password' => 'password',
+        'is_active' => false,
+    ]);
+    $passwordResetUser = User::factory()->create(['must_reset_password' => true]);
+
+    $this->post(route('login.store'), [
+        'email' => $suspendedUser->email,
+        'password' => 'password',
+    ])->assertSessionHasErrors('email');
+
+    $this->actingAs($passwordResetUser)
+        ->get(route('dashboard'))
+        ->assertRedirect(route('profile.password'));
+
+    $this->post(route('logout'));
+
+    $this->post(route('login.store'), [
+        'email' => $passwordResetUser->email,
+        'password' => 'password',
+    ])->assertRedirect(route('profile.password'));
+
+    $this->assertAuthenticatedAs($passwordResetUser);
 });
 
 test('users can update their profile from the admin area', function () {

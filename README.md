@@ -12,9 +12,11 @@ A professional Laravel starter application with a custom Bootstrap-based interfa
   - Email verification
   - Password reset and password confirmation
   - Profile and password updates
-  - Two-factor authentication with recovery codes
-- Role and permission management powered by Spatie Laravel Permission
-- User management with role assignment
+- Two-factor authentication with recovery codes
+- Granular role and permission management powered by Spatie Laravel Permission
+- User CRUD with search, filters, pagination, invitations, account status, and Super Admin safeguards
+- Account security with two-factor authentication, recovery codes, and active-session management
+- Auditable user, role, permission, and security events
 - Responsive application shell with Dashboard, Account, and User management areas
 - Pest feature tests and Laravel Pint formatting
 
@@ -132,7 +134,7 @@ The default database seeder creates a local administrator account:
 | Password | `password` |
 | Role | `Super Admin` |
 
-This account is intended for local development only. Change or remove it before deployment. Email verification is enabled, so complete the verification flow after the first sign-in. With the default local mail configuration, verification messages are written to the application log.
+This account is intended for local development only. Its email address is pre-verified so you can access the dashboard immediately. Change or remove it before deployment. With the default local mail configuration, verification and password-reset messages are written to the application log.
 
 ## Application areas
 
@@ -150,10 +152,11 @@ Every signed-in, verified user can manage:
 
 ### User management
 
-Users with the `manage access` permission can access the User management main navigation:
+Users with the applicable management permissions can access the User management main navigation:
 
-- **Users** — inspect registered users and assign roles
+- **Users** — search, filter, invite, suspend, update, and assign roles to registered users
 - **Roles & permissions** — create, edit, and delete roles and permissions; assign permissions to roles
+- **Audit log** — review security and access-management activity
 
 The `Super Admin` role is protected from deletion and receives all authorization abilities through Laravel's gate.
 
@@ -168,17 +171,20 @@ Users → Roles → Permissions
 The initial seeder creates:
 
 - `Super Admin` role
-- `manage access` permission
+- `users.view`, `users.create`, `users.update`, and `users.delete`
+- `roles.manage`, `permissions.manage`, and `audit.view`
 
-The `Super Admin` role receives the `manage access` permission and is authorized globally through `Gate::before`.
+The `Super Admin` role receives every management permission and is authorized globally through `Gate::before`. It cannot be renamed or deleted, and the final Super Admin account cannot be deleted or stripped of the role.
 
-To grant an existing user access to user administration, assign a role containing `manage access` from the User management area.
+Grant access by assigning the appropriate management permissions to a role from the Roles & permissions area. Non-Super Admin role managers can only delegate permissions they already hold. Only Super Admins can manage Super Admin accounts.
 
 ## Page structure
 
 ```text
 resources/views/pages/
 ├── ⚡dashboard.blade.php
+├── audit/
+│   └── ⚡index.blade.php
 ├── profile/
 │   ├── ⚡index.blade.php
 │   ├── ⚡password.blade.php
@@ -214,7 +220,15 @@ Fortify has the following features enabled:
 - Password updates
 - Two-factor authentication with confirmation
 
-Google and Facebook buttons are displayed on relevant authentication screens as interface placeholders. They are disabled until OAuth credentials and a Socialite integration are added.
+Passkeys and social sign-in are intentionally not enabled until their full user-management and OAuth flows are configured.
+
+## Security operations
+
+- Suspending an account ends its active sessions and blocks future sign-ins.
+- Administrators can send a password-reset email and require the user to choose a new password before accessing the application.
+- New users can receive a password-setup invitation instead of an administrator setting a password for them.
+- The Security page lets users review and revoke other database-backed sessions.
+- The Audit log records profile, password, two-factor, user, role, and permission changes.
 
 ## Useful commands
 
