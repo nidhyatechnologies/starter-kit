@@ -43,7 +43,7 @@ new #[Layout('layouts.app'), Title('Profile settings')] class extends Component 
 <div class="settings-page">
     <header class="settings-page__header">
         <h1 class="settings-page__title">Profile</h1>
-        <p class="settings-page__description">Manage the details used across your NatyaTech account.</p>
+        <p class="settings-page__description">Manage the details used across your Nidhya Starter Kit account.</p>
     </header>
 
     <section class="card settings-card">

@@ -2,6 +2,8 @@
 
 namespace App\Actions\Fortify;
 
+use App\Actions\RecordAuditEvent;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as AuthenticatableUser;
 use Illuminate\Support\Facades\Validator;
@@ -40,6 +42,8 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
                 'email' => $input['email'],
             ])->save();
         }
+
+        app(RecordAuditEvent::class)->handle('profile.updated', $user);
     }
 
     /**

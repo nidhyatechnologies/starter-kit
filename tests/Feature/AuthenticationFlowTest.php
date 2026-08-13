@@ -4,7 +4,9 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
+use Laravel\Fortify\Fortify;
 use Livewire\Livewire;
+use PragmaRX\Google2FA\Google2FA;
 
 test('guests can access the Livewire authentication screens', function () {
     $this->get(route('login'))->assertSuccessful();
@@ -59,7 +61,34 @@ test('verified users can view the Livewire dashboard', function () {
         ->assertSee('Dashboard')
         ->assertSee('Notifications')
         ->assertSee('Overview')
-        ->assertSee('Your NatyaTech workspace is ready');
+        ->assertSee('Your Nidhya Starter Kit workspace is ready');
+});
+
+test('suspended users cannot sign in and users required to reset their password are redirected', function () {
+    $suspendedUser = User::factory()->create([
+        'email' => 'suspended@example.com',
+        'password' => 'password',
+        'is_active' => false,
+    ]);
+    $passwordResetUser = User::factory()->create(['must_reset_password' => true]);
+
+    $this->post(route('login.store'), [
+        'email' => $suspendedUser->email,
+        'password' => 'password',
+    ])->assertSessionHasErrors('email');
+
+    $this->actingAs($passwordResetUser)
+        ->get(route('dashboard'))
+        ->assertRedirect(route('profile.password'));
+
+    $this->post(route('logout'));
+
+    $this->post(route('login.store'), [
+        'email' => $passwordResetUser->email,
+        'password' => 'password',
+    ])->assertRedirect(route('profile.password'));
+
+    $this->assertAuthenticatedAs($passwordResetUser);
 });
 
 test('users can update their profile from the admin area', function () {
@@ -100,6 +129,55 @@ test('users can manage their password and security settings', function () {
         ->assertSet('saved', true);
 
     expect($user->fresh()->password)->not->toBe('current-password');
+});
+
+test('a user can enable, confirm, and use two-factor authentication', function () {
+    $user = User::factory()->create(['password' => 'current-password']);
+
+    $this->actingAs($user);
+
+    Livewire::test('pages::profile.security')
+        ->set('currentPassword', 'current-password')
+        ->call('enableTwoFactor')
+        ->assertHasNoErrors();
+
+    $secret = Fortify::currentEncrypter()->decrypt($user->fresh()->two_factor_secret);
+    $code = app(Google2FA::class)->getCurrentOtp($secret);
+
+    Livewire::test('pages::profile.security')
+        ->set('code', $code)
+        ->call('confirmTwoFactor')
+        ->assertHasNoErrors();
+
+    expect($user->fresh()->two_factor_confirmed_at)->not->toBeNull();
+
+    $recoveryCode = $user->fresh()->recoveryCodes()[0];
+
+    $this->post(route('logout'));
+
+    $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'current-password',
+    ])->assertRedirect(route('two-factor.login'));
+
+    $this->post(route('two-factor.login.store'), ['recovery_code' => $recoveryCode])
+        ->assertRedirect(route('dashboard'));
+
+    $this->assertAuthenticatedAs($user);
+});
+
+test('a user can permanently close their own account', function () {
+    $user = User::factory()->create(['password' => 'current-password']);
+
+    $this->actingAs($user);
+
+    Livewire::test('pages::profile.security')
+        ->set('currentPassword', 'current-password')
+        ->call('closeAccount')
+        ->assertHasNoErrors();
+
+    $this->assertGuest();
+    $this->assertModelMissing($user);
 });
 
 test('a user can request a password reset link', function () {

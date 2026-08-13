@@ -12,7 +12,7 @@ new #[Layout('layouts.app'), Title('Dashboard')] class extends Component { };
         <section class="bg-gradient-mixed p-5 p-lg-6 rounded-3">
             <p class="text-uppercase small fw-semibold mb-2">Overview</p>
             <h1 class="fs-2 mb-2">Welcome back, {{ auth()->user()->name }}.</h1>
-            <p class="mb-0">Your NatyaTech workspace is ready. Manage your account or begin adding application modules
+            <p class="mb-0">Your Nidhya Starter Kit workspace is ready. Manage your account or begin adding application modules
                 from here.</p>
         </section>
     </div>
@@ -28,7 +28,7 @@ new #[Layout('layouts.app'), Title('Dashboard')] class extends Component { };
         <article class="card h-100">
             <div class="card-body"><span class="badge text-bg-secondary mb-4">Brand</span>
                 <p class="text-secondary mb-2">Appearance</p>
-                <h2 class="fs-5 mb-0">NatyaTech design system</h2>
+                <h2 class="fs-5 mb-0">Nidhya Starter Kit design system</h2>
             </div>
         </article>
     </div>

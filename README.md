@@ -12,9 +12,11 @@ A professional Laravel starter application with a custom Bootstrap-based interfa
   - Email verification
   - Password reset and password confirmation
   - Profile and password updates
-  - Two-factor authentication with recovery codes
-- Role and permission management powered by Spatie Laravel Permission
-- User management with role assignment
+- Two-factor authentication with recovery codes
+- Granular role and permission management powered by Spatie Laravel Permission
+- User CRUD with search, filters, pagination, invitations, account status, and Super Admin safeguards
+- Account security with two-factor authentication, recovery codes, and active-session management
+- Auditable user, role, permission, and security events
 - Responsive application shell with Dashboard, Account, and User management areas
 - Pest feature tests and Laravel Pint formatting
 
@@ -47,11 +49,11 @@ After this repository is published as the Composer package `nidhyatechnologies/s
 laravel new my-application --using=nidhyatechnologies/starter-kit
 ```
 
-Then enter the new project, configure the database, and run the migrations and seeders:
+Then enter the new project, configure the database, and run the migrations:
 
 ```bash
 cd my-application
-php artisan migrate --seed
+php artisan migrate
 npm run dev
 ```
 
@@ -97,10 +99,10 @@ composer global require laravel/installer
    New-Item -ItemType File database/database.sqlite
    ```
 
-4. Run migrations and seed the local administrator role.
+4. Run the migrations.
 
    ```bash
-   php artisan migrate --seed
+   php artisan migrate
    ```
 
 5. Install and build front-end assets.
@@ -122,9 +124,15 @@ composer global require laravel/installer
    php artisan serve
    ```
 
-## Local administrator
+## Optional local demo administrator
 
-The default database seeder creates a local administrator account:
+No account is created during installation or the standard database seed. To create a local-only demo administrator, run:
+
+```bash
+php artisan db:seed --class=DemoUserSeeder
+```
+
+This creates:
 
 | Field | Value |
 | --- | --- |
@@ -132,7 +140,7 @@ The default database seeder creates a local administrator account:
 | Password | `password` |
 | Role | `Super Admin` |
 
-This account is intended for local development only. Change or remove it before deployment. Email verification is enabled, so complete the verification flow after the first sign-in. With the default local mail configuration, verification messages are written to the application log.
+This account is intended for local development only. Its email address is pre-verified so you can access the dashboard immediately. Never deploy these credentials. With the default local mail configuration, verification and password-reset messages are written to the application log.
 
 ## Application areas
 
@@ -150,10 +158,11 @@ Every signed-in, verified user can manage:
 
 ### User management
 
-Users with the `manage access` permission can access the User management main navigation:
+Users with the applicable management permissions can access the User management main navigation:
 
-- **Users** — inspect registered users and assign roles
+- **Users** — search, filter, invite, suspend, update, and assign roles to registered users
 - **Roles & permissions** — create, edit, and delete roles and permissions; assign permissions to roles
+- **Audit log** — review security and access-management activity
 
 The `Super Admin` role is protected from deletion and receives all authorization abilities through Laravel's gate.
 
@@ -168,17 +177,20 @@ Users → Roles → Permissions
 The initial seeder creates:
 
 - `Super Admin` role
-- `manage access` permission
+- `users.view`, `users.create`, `users.update`, and `users.delete`
+- `roles.manage`, `permissions.manage`, and `audit.view`
 
-The `Super Admin` role receives the `manage access` permission and is authorized globally through `Gate::before`.
+The `Super Admin` role receives every management permission and is authorized globally through `Gate::before`. It cannot be renamed or deleted, and the final Super Admin account cannot be deleted or stripped of the role.
 
-To grant an existing user access to user administration, assign a role containing `manage access` from the User management area.
+Grant access by assigning the appropriate management permissions to a role from the Roles & permissions area. Non-Super Admin role managers can only delegate permissions they already hold. Only Super Admins can manage Super Admin accounts.
 
 ## Page structure
 
 ```text
 resources/views/pages/
 ├── ⚡dashboard.blade.php
+├── audit/
+│   └── ⚡index.blade.php
 ├── profile/
 │   ├── ⚡index.blade.php
 │   ├── ⚡password.blade.php
@@ -214,7 +226,15 @@ Fortify has the following features enabled:
 - Password updates
 - Two-factor authentication with confirmation
 
-Google and Facebook buttons are displayed on relevant authentication screens as interface placeholders. They are disabled until OAuth credentials and a Socialite integration are added.
+Passkeys and social sign-in are intentionally not enabled until their full user-management and OAuth flows are configured.
+
+## Security operations
+
+- Suspending an account ends its active sessions and blocks future sign-ins.
+- Administrators can send a password-reset email and require the user to choose a new password before accessing the application.
+- New users can receive a password-setup invitation instead of an administrator setting a password for them.
+- The Security page lets users review and revoke other database-backed sessions.
+- The Audit log records profile, password, two-factor, user, role, and permission changes.
 
 ## Useful commands
 
@@ -235,8 +255,21 @@ Run these before opening a pull request or deploying:
 ```bash
 php artisan test --compact
 vendor/bin/pint --format agent
+composer audit --no-interaction
+npm audit --omit=dev --audit-level=high
 npm run build
 ```
+
+Browser smoke tests use Playwright. Install Chromium once, then run the browser suite when changing JavaScript or Livewire navigation:
+
+```bash
+npx playwright install chromium
+php artisan test --testsuite=Browser
+```
+
+## Contributing and support
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. Security vulnerabilities must be reported privately as described in [SECURITY.md](SECURITY.md). Project changes are recorded in [CHANGELOG.md](CHANGELOG.md), and all contributors are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Security and deployment
 
@@ -245,6 +278,7 @@ npm run build
 - Replace the seeded development credentials before deployment.
 - Configure a persistent cache store and queue worker for production workloads.
 - Keep `APP_KEY`, database credentials, and OAuth secrets out of version control.
+- Create a release tag such as `v1.0.0` before publishing a stable version to Packagist.
 
 ## License
 

@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Gate;
+use App\Actions\RecordAuditEvent;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -23,7 +25,7 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
 
     public function mount(): void
     {
-        Gate::authorize('manage access');
+        abort_unless(Gate::any(['roles.manage', 'permissions.manage']), 403);
     }
 
     #[Computed]
@@ -40,9 +42,15 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
 
     public function editRole(int $roleId): void
     {
-        Gate::authorize('manage access');
+        Gate::authorize('roles.manage');
 
         $role = Role::query()->with('permissions:id')->findOrFail($roleId);
+
+        if ($role->name === 'Super Admin') {
+            $this->addError('roleName', 'The Super Admin role is a protected system role.');
+
+            return;
+        }
 
         $this->editingRoleId = $role->id;
         $this->roleName = $role->name;
@@ -52,7 +60,13 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
 
     public function saveRole(): void
     {
-        Gate::authorize('manage access');
+        Gate::authorize('roles.manage');
+
+        if ($this->editingRoleId !== null && Role::query()->findOrFail($this->editingRoleId)->name === 'Super Admin') {
+            $this->addError('roleName', 'The Super Admin role is a protected system role.');
+
+            return;
+        }
 
         $this->validate([
             'roleName' => [
@@ -65,6 +79,8 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
             'rolePermissionIds.*' => ['integer', Rule::exists('permissions', 'id')],
         ]);
 
+        $this->ensurePermissionsCanBeDelegated();
+
         $role = Role::query()->updateOrCreate(
             ['id' => $this->editingRoleId],
             ['name' => $this->roleName, 'guard_name' => 'web'],
@@ -74,12 +90,14 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
             Permission::query()->whereKey($this->rolePermissionIds)->get(),
         );
 
+        app(RecordAuditEvent::class)->handle('role.saved', null, ['role_id' => $role->id]);
+
         $this->resetRoleForm();
     }
 
     public function deleteRole(int $roleId): void
     {
-        Gate::authorize('manage access');
+        Gate::authorize('roles.manage');
 
         $role = Role::query()->findOrFail($roleId);
 
@@ -90,6 +108,7 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
         }
 
         $role->delete();
+        app(RecordAuditEvent::class)->handle('role.deleted', null, ['role_id' => $roleId]);
 
         if ($this->editingRoleId === $roleId) {
             $this->resetRoleForm();
@@ -98,7 +117,7 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
 
     public function editPermission(int $permissionId): void
     {
-        Gate::authorize('manage access');
+        Gate::authorize('permissions.manage');
 
         $permission = Permission::query()->findOrFail($permissionId);
 
@@ -109,7 +128,13 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
 
     public function savePermission(): void
     {
-        Gate::authorize('manage access');
+        Gate::authorize('permissions.manage');
+
+        if ($this->editingPermissionId !== null && $this->isSystemPermission(Permission::query()->findOrFail($this->editingPermissionId))) {
+            $this->addError('permissionName', 'System permissions cannot be renamed.');
+
+            return;
+        }
 
         $this->validate([
             'permissionName' => [
@@ -125,22 +150,25 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
             ['name' => $this->permissionName, 'guard_name' => 'web'],
         );
 
+        app(RecordAuditEvent::class)->handle('permission.saved', null, ['permission' => $this->permissionName]);
+
         $this->resetPermissionForm();
     }
 
     public function deletePermission(int $permissionId): void
     {
-        Gate::authorize('manage access');
+        Gate::authorize('permissions.manage');
 
         $permission = Permission::query()->findOrFail($permissionId);
 
-        if ($permission->name === 'manage access') {
-            $this->addError('permissionName', 'The access management permission cannot be deleted.');
+        if ($this->isSystemPermission($permission)) {
+            $this->addError('permissionName', 'System permissions cannot be deleted.');
 
             return;
         }
 
         $permission->delete();
+        app(RecordAuditEvent::class)->handle('permission.deleted', null, ['permission' => $permission->name]);
 
         if ($this->editingPermissionId === $permissionId) {
             $this->resetPermissionForm();
@@ -157,6 +185,37 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
     {
         $this->reset('editingPermissionId', 'permissionName');
         $this->resetValidation('permissionName');
+    }
+
+    private function isSystemPermission(Permission $permission): bool
+    {
+        return in_array($permission->name, [
+            'users.view',
+            'users.create',
+            'users.update',
+            'users.delete',
+            'roles.manage',
+            'permissions.manage',
+            'audit.view',
+        ], true);
+    }
+
+    private function ensurePermissionsCanBeDelegated(): void
+    {
+        if (auth()->user()->isSuperAdmin()) {
+            return;
+        }
+
+        $hasUndelegatedPermission = Permission::query()
+            ->whereKey($this->rolePermissionIds)
+            ->get()
+            ->contains(fn (Permission $permission): bool => ! auth()->user()->can($permission->name));
+
+        if ($hasUndelegatedPermission) {
+            throw ValidationException::withMessages([
+                'rolePermissionIds' => 'You may only assign permissions you currently hold.',
+            ]);
+        }
     }
 };
 ?>
@@ -181,6 +240,7 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
                         @endif
                     </div>
 
+                    @can('roles.manage')
                     <form wire:submit="saveRole">
                         <label for="role-name" class="form-label">{{ $editingRoleId ? 'Role name' : 'New role name' }}</label>
                         <input wire:model="roleName" id="role-name" type="text" class="form-control @error('roleName') is-invalid @enderror" placeholder="e.g. Content manager">
@@ -190,20 +250,24 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
                             <legend class="form-label mb-2">Permissions</legend>
                             <div class="settings-permission-list">
                                 @forelse ($this->permissions as $permission)
+                                    @if (auth()->user()->can($permission->name))
                                     <label class="settings-permission-option" wire:key="role-permission-{{ $permission->id }}">
                                         <input wire:model="rolePermissionIds" class="form-check-input" type="checkbox" value="{{ $permission->id }}">
                                         <span>{{ $permission->name }}</span>
                                     </label>
+                                    @endif
                                 @empty
                                     <p class="small text-secondary mb-0">Create permissions first, then add them to roles.</p>
                                 @endforelse
                             </div>
+                            @error('rolePermissionIds') <p class="small text-danger mt-2 mb-0">{{ $message }}</p> @enderror
                         </fieldset>
 
                         <button type="submit" class="btn btn-primary mt-4" wire:loading.attr="disabled" wire:target="saveRole">
                             {{ $editingRoleId ? 'Save role' : 'Create role' }}
                         </button>
                     </form>
+                    @endcan
 
                     <div class="border-top mt-4 pt-4">
                         <h3 class="settings-card__title fs-6 mb-3">Existing roles</h3>
@@ -215,10 +279,12 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
                                         <small>{{ $role->permissions->count() }} permissions</small>
                                     </div>
                                     <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="editRole({{ $role->id }})">Edit</button>
+                                        @can('roles.manage')
                                         @if ($role->name !== 'Super Admin')
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="editRole({{ $role->id }})">Edit</button>
                                             <button type="button" class="btn btn-outline-danger btn-sm" wire:click="deleteRole({{ $role->id }})" wire:confirm="Delete this role?">Delete</button>
                                         @endif
+                                        @endcan
                                     </div>
                                 </div>
                             @endforeach
@@ -241,6 +307,7 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
                         @endif
                     </div>
 
+                    @can('permissions.manage')
                     <form wire:submit="savePermission">
                         <label for="permission-name" class="form-label">{{ $editingPermissionId ? 'Permission name' : 'New permission name' }}</label>
                         <input wire:model="permissionName" id="permission-name" type="text" class="form-control @error('permissionName') is-invalid @enderror" placeholder="e.g. manage reports">
@@ -249,6 +316,7 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
                             {{ $editingPermissionId ? 'Save permission' : 'Create permission' }}
                         </button>
                     </form>
+                    @endcan
 
                     <div class="border-top mt-4 pt-4">
                         <h3 class="settings-card__title fs-6 mb-3">Existing permissions</h3>
@@ -257,10 +325,12 @@ new #[Layout('layouts.app'), Title('Roles & permissions')] class extends Compone
                                 <div class="settings-list-row" wire:key="permission-{{ $permission->id }}">
                                     <strong>{{ $permission->name }}</strong>
                                     <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="editPermission({{ $permission->id }})">Edit</button>
-                                        @if ($permission->name !== 'manage access')
+                                        @can('permissions.manage')
+                                        @if (! in_array($permission->name, ['users.view', 'users.create', 'users.update', 'users.delete', 'roles.manage', 'permissions.manage'], true))
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="editPermission({{ $permission->id }})">Edit</button>
                                             <button type="button" class="btn btn-outline-danger btn-sm" wire:click="deletePermission({{ $permission->id }})" wire:confirm="Delete this permission?">Delete</button>
                                         @endif
+                                        @endcan
                                     </div>
                                 </div>
                             @endforeach

@@ -25,7 +25,6 @@ new #[Layout('layouts.auth'), Title('Create account')] class extends Component {
             <div class="d-grid"><button class="btn btn-primary" type="submit">Create account</button></div>
         </form>
 
-        <x-social-auth-options />
         <p class="auth-footer">Already registered? <a wire:navigate href="{{ route('login') }}" class="auth-link">Sign in</a></p>
     </div>
 </section>

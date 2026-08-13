@@ -16,7 +16,7 @@
     <header class="app-header">
         <div class="app-header__inner">
             <a wire:navigate href="{{ route('dashboard') }}" class="app-header__brand">
-                <img src="{{ asset('logo_without_tagline.png') }}" alt="NatyaTech">
+                <img src="{{ asset('logo_without_tagline.png') }}" alt="Nidhya Starter Kit">
             </a>
 
             <div class="app-header__actions">
@@ -68,9 +68,17 @@
         <div class="app-primary-nav__inner">
             <a wire:navigate href="{{ route('dashboard') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('dashboard')])>Dashboard</a>
             <a wire:navigate href="{{ route('profile.edit') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('profile.*')])>Account</a>
-            @can('manage access')
-                <a wire:navigate href="{{ route('users.index') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('users.*') || request()->routeIs('access-control.*')])>User management</a>
-            @endcan
+            @canany(['users.view', 'roles.manage', 'permissions.manage', 'audit.view'])
+                @can('users.view')
+                    <a wire:navigate href="{{ route('users.index') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('users.*') || request()->routeIs('access-control.*') || request()->routeIs('audit.*')])>User management</a>
+                @else
+                    @canany(['roles.manage', 'permissions.manage'])
+                        <a wire:navigate href="{{ route('access-control.index') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('users.*') || request()->routeIs('access-control.*') || request()->routeIs('audit.*')])>User management</a>
+                    @else
+                        <a wire:navigate href="{{ route('audit.index') }}" @class(['app-primary-nav__link', 'is-active' => request()->routeIs('users.*') || request()->routeIs('access-control.*') || request()->routeIs('audit.*')])>User management</a>
+                    @endcanany
+                @endcan
+            @endcanany
         </div>
     </nav>
 
@@ -93,18 +101,28 @@
                     </a>
                 </nav>
             </aside>
-        @elseif (request()->routeIs('users.*') || request()->routeIs('access-control.*'))
+            @elseif (request()->routeIs('users.*') || request()->routeIs('access-control.*') || request()->routeIs('audit.*'))
             <aside class="app-sidebar" aria-label="User management navigation">
                 <p class="app-sidebar__title">User management</p>
                 <nav class="app-sidebar__nav">
-                    <a wire:navigate href="{{ route('users.index') }}" @class(['app-sidebar__link', 'is-active' => request()->routeIs('users.*')])>
-                        <i class="ti ti-users" aria-hidden="true"></i>
-                        <span>Users</span>
-                    </a>
-                    <a wire:navigate href="{{ route('access-control.index') }}" @class(['app-sidebar__link', 'is-active' => request()->routeIs('access-control.*')])>
-                        <i class="ti ti-lock-access" aria-hidden="true"></i>
-                        <span>Roles & permissions</span>
-                    </a>
+                    @can('users.view')
+                        <a wire:navigate href="{{ route('users.index') }}" @class(['app-sidebar__link', 'is-active' => request()->routeIs('users.*')])>
+                            <i class="ti ti-users" aria-hidden="true"></i>
+                            <span>Users</span>
+                        </a>
+                    @endcan
+                    @canany(['roles.manage', 'permissions.manage'])
+                        <a wire:navigate href="{{ route('access-control.index') }}" @class(['app-sidebar__link', 'is-active' => request()->routeIs('access-control.*')])>
+                            <i class="ti ti-lock-access" aria-hidden="true"></i>
+                            <span>Roles & permissions</span>
+                        </a>
+                    @endcanany
+                    @can('audit.view')
+                        <a wire:navigate href="{{ route('audit.index') }}" @class(['app-sidebar__link', 'is-active' => request()->routeIs('audit.*')])>
+                            <i class="ti ti-history" aria-hidden="true"></i>
+                            <span>Audit log</span>
+                        </a>
+                    @endcan
                 </nav>
             </aside>
         @endif

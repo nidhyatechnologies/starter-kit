@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -17,14 +16,20 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $permission = Permission::findOrCreate('manage access', 'web');
+        $permissions = collect([
+            'users.view',
+            'users.create',
+            'users.update',
+            'users.delete',
+            'roles.manage',
+            'permissions.manage',
+            'audit.view',
+        ])->map(fn (string $permission) => Permission::findOrCreate($permission, 'web'));
 
         $superAdmin = Role::findOrCreate('Super Admin', 'web');
-        $superAdmin->syncPermissions([$permission]);
+        $superAdmin->syncPermissions($permissions);
 
-        User::query()
-            ->where('email', 'admin@example.com')
-            ->first()
-            ?->syncRoles([$superAdmin]);
+        Permission::query()->where('name', 'manage access')->delete();
+
     }
 }

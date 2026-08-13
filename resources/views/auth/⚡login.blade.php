@@ -51,8 +51,7 @@ new #[Layout('layouts.auth'), Title('Sign in')] class extends Component { };
             <div class="d-grid"><button class="btn btn-primary" type="submit">Sign in</button></div>
         </form>
 
-        <x-social-auth-options />
-        <p class="auth-footer">New to NatyaTech? <a wire:navigate href="{{ route('register') }}"
+        <p class="auth-footer">New to Nidhya Starter Kit? <a wire:navigate href="{{ route('register') }}"
                 class="auth-link">Create an account</a></p>
     </div>
 </section>
