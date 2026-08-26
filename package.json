@@ -20,6 +20,6 @@
         "@popperjs/core": "^2.11.6",
         "bootstrap": "^5.2.3",
         "playwright": "^1.62.1",
-        "sass": "^1.56.1"
+        "sass": "^1.103.1"
     }
 }
